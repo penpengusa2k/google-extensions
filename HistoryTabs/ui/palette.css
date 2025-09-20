@@ -3,7 +3,7 @@ body { margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sa
 
 .container { display: flex; flex: 1; overflow: hidden; }
 
-.sidebar { width: 50px; background: #f8f9fa; border-right: 1px solid #e5e7eb; padding-top: 10px; }
+.sidebar { width: 50px; background: #f8f9fa; border-left: 1px solid #e5e7eb; padding-top: 10px; }
 .sidebar-btn { background: none; border: none; width: 100%; padding: 12px 0; cursor: pointer; color: #6c757d; }
 .sidebar-btn:hover { background: #e9ecef; }
 .sidebar-btn.active { color: #0d6efd; background: #e7f1ff; }
@@ -14,7 +14,8 @@ body { margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sa
 .view { display: none; height: 100%; }
 .view.active { display: block; }
 
-#searchView { padding: 12px; display: flex; flex-direction: column; height: 100%; }
+#searchView { padding: 12px; flex-direction: column; height: 100%; }
+#searchView.active { display: flex; }
 #q { width: 100%; padding: 10px 12px; font-size: 16px; border: 1px solid #e5e7eb; border-radius: 10px; outline: none; margin-bottom: 12px; }
 #q:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
 

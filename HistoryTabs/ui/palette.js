@@ -1,4 +1,3 @@
-
 const q = document.getElementById('q');
 const sectionPinned = document.getElementById('sectionPinned');
 const listPinned = document.getElementById('listPinned');
@@ -6,11 +5,25 @@ const sectionResults = document.getElementById('sectionResults');
 const listResults = document.getElementById('listResults');
 const resultsTitle = document.getElementById('resultsTitle');
 
+// View switching
+const viewSearchBtn = document.getElementById('viewSearchBtn');
+const viewSettingsBtn = document.getElementById('viewSettingsBtn');
+const searchView = document.getElementById('searchView');
+const settingsView = document.getElementById('settingsView');
+
+// Settings elements
+const dwellTimeSlider = document.getElementById('dwellTime');
+const dwellTimeValue = document.getElementById('dwellTimeValue');
+const maxHistorySlider = document.getElementById('maxHistory');
+const maxHistoryValue = document.getElementById('maxHistoryValue');
+const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
 let pinned = [];
 let historyItems = [];
 let tabsMode = false;
 let currentItems = [];
 let selectionIndex = 0;
+let settings = {};
 
 function debounce(fn, ms) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; }
 function normalize(s) { return (s || "").toLowerCase(); }
@@ -57,9 +70,13 @@ async function loadStateAndRender() {
   const state = await chrome.runtime.sendMessage({ type: 'getState' });
   pinned = state.pinned || [];
   historyItems = (state.history || []).slice(0, 100);
+  settings = state.settings || { dwellSeconds: 3, maxHistory: 10 };
+
   sectionPinned.classList.toggle('hidden', pinned.length === 0);
   listPinned.innerHTML = '';
   pinned.forEach((p, i) => listPinned.appendChild(itemRow({ ...p, favIconUrl: null }, i, true)));
+  
+  updateSettingsUI();
   await refreshResults();
 }
 
@@ -109,6 +126,32 @@ function applySelection() {
   }
 }
 
+function switchView(view) {
+  if (view === 'settings') {
+    searchView.classList.remove('active');
+    settingsView.classList.add('active');
+    viewSearchBtn.classList.remove('active');
+    viewSettingsBtn.classList.add('active');
+  } else {
+    settingsView.classList.remove('active');
+    searchView.classList.add('active');
+    viewSettingsBtn.classList.remove('active');
+    viewSearchBtn.classList.add('active');
+    q.focus();
+  }
+}
+
+function updateSettingsUI() {
+  dwellTimeSlider.value = settings.dwellSeconds;
+  dwellTimeValue.textContent = settings.dwellSeconds;
+  maxHistorySlider.value = settings.maxHistory;
+  maxHistoryValue.textContent = settings.maxHistory;
+}
+
+async function saveSettings() {
+  await chrome.runtime.sendMessage({ type: 'setState', state: { settings } });
+}
+
 q.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowDown') { e.preventDefault(); const len = currentItems.length; if (len > 0) { selectionIndex = Math.min(len - 1, selectionIndex + 1); applySelection(); } }
   else if (e.key === 'ArrowUp') { e.preventDefault(); const len = currentItems.length; if (len > 0) { selectionIndex = Math.max(0, selectionIndex - 1); applySelection(); } }
@@ -116,4 +159,28 @@ q.addEventListener('keydown', (e) => {
   else if (e.key === 'Escape') { window.close(); }
 });
 q.addEventListener('input', debounce(refreshResults, 120));
-loadStateAndRender(); q.focus();
+
+viewSearchBtn.addEventListener('click', () => switchView('search'));
+viewSettingsBtn.addEventListener('click', () => switchView('settings'));
+
+dwellTimeSlider.addEventListener('input', (e) => {
+  settings.dwellSeconds = parseInt(e.target.value, 10);
+  dwellTimeValue.textContent = settings.dwellSeconds;
+});
+dwellTimeSlider.addEventListener('change', saveSettings);
+
+maxHistorySlider.addEventListener('input', (e) => {
+  settings.maxHistory = parseInt(e.target.value, 10);
+  maxHistoryValue.textContent = settings.maxHistory;
+});
+maxHistorySlider.addEventListener('change', saveSettings);
+
+clearHistoryBtn.addEventListener('click', async () => {
+  if (confirm('すべての履歴を削除します。よろしいですか？')) {
+    await chrome.runtime.sendMessage({ type: 'clearHistory' });
+    await loadStateAndRender();
+  }
+});
+
+loadStateAndRender(); 
+q.focus();

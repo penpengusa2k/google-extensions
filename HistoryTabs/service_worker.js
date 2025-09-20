@@ -72,6 +72,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       await setState({ pinned: next }); sendResponse({ ok: true });
     } else if (msg?.type === "getState") {
       const s = await getState(); sendResponse(s);
+    } else if (msg?.type === "setState") {
+      await setState(msg.state);
+      sendResponse({ ok: true });
+    } else if (msg?.type === "clearHistory") {
+      await setState({ history: [] });
+      sendResponse({ ok: true });
     } else if (msg?.type === "openUrl") {
       const targetUrl = msg.url; const [existing] = await chrome.tabs.query({ url: targetUrl });
       if (existing) { await chrome.windows.update(existing.windowId, { focused: true }); await chrome.tabs.update(existing.id, { active: true }); }

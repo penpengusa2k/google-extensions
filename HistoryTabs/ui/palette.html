@@ -1,16 +1,52 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>Palette</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 <link rel="stylesheet" href="palette.css">
-<div class="wrap">
-  <input id="q" type="text" placeholder="検索…（/t でタブ検索）" autocomplete="off" autofocus aria-label="検索入力">
-  <div id="sectionPinned" class="section hidden">
-    <div class="sectionTitle">Pinned</div>
-    <ul id="listPinned" role="listbox" aria-label="固定URL"></ul>
+
+<div class="container">
+  <div class="sidebar">
+    <button id="viewSearchBtn" class="sidebar-btn active" title="検索"><i class="material-icons">search</i></button>
+    <button id="viewSettingsBtn" class="sidebar-btn" title="設定"><i class="material-icons">settings</i></button>
   </div>
-  <div id="sectionResults" class="section">
-    <div class="sectionTitle" id="resultsTitle">History</div>
-    <ul id="listResults" role="listbox" aria-label="検索結果"></ul>
+
+  <div class="main-content">
+    <div id="searchView" class="view active">
+      <input id="q" type="text" placeholder="検索…（/t でタブ検索）" autocomplete="off" autofocus aria-label="検索入力">
+      <div id="sectionPinned" class="section hidden">
+        <div class="sectionTitle">Pinned</div>
+        <ul id="listPinned" role="listbox" aria-label="固定URL"></ul>
+      </div>
+      <div id="sectionResults" class="section">
+        <div class="sectionTitle" id="resultsTitle">History</div>
+        <ul id="listResults" role="listbox" aria-label="検索結果"></ul>
+      </div>
+    </div>
+
+    <div id="settingsView" class="view">
+      <div class="settings-container">
+        <h2>設定</h2>
+        <div class="setting-item">
+          <label for="dwellTime">履歴登録までの秒数: <span id="dwellTimeValue">3</span>s</label>
+          <input type="range" id="dwellTime" min="1" max="10" value="3">
+        </div>
+        <div class="setting-item">
+          <label for="maxHistory">最大履歴件数: <span id="maxHistoryValue">10</span></label>
+          <input type="range" id="maxHistory" min="10" max="30" step="5" value="10">
+        </div>
+        <div class="setting-item">
+          <button id="clearHistoryBtn" class="danger-btn">全履歴を削除</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+
+<div class="footer">
+  <span class="command"><kbd>↑</kbd><kbd>↓</kbd> 移動</span>
+  <span class="command"><kbd>Enter</kbd> 選択</span>
+  <span class="command"><kbd>/t</kbd> タブ検索</span>
+  <span class="command"><kbd>Esc</kbd> 閉じる</span>
+</div>
+
 <script src="palette.js" defer></script>

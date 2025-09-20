@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Palette</title>
+<link rel="stylesheet" href="palette.css">
+<div class="wrap">
+  <input id="q" type="text" placeholder="検索…（/t でタブ検索）" autocomplete="off" autofocus aria-label="検索入力">
+  <div id="sectionPinned" class="section hidden">
+    <div class="sectionTitle">Pinned</div>
+    <ul id="listPinned" role="listbox" aria-label="固定URL"></ul>
+  </div>
+  <div id="sectionResults" class="section">
+    <div class="sectionTitle" id="resultsTitle">History</div>
+    <ul id="listResults" role="listbox" aria-label="検索結果"></ul>
+  </div>
+</div>
+<script src="palette.js" defer></script>

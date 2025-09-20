@@ -22,6 +22,7 @@ let pinned = [];
 let historyItems = [];
 let tabsMode = false;
 let currentItems = [];
+let selectableItems = [];
 let selectionIndex = 0;
 let settings = {};
 
@@ -102,12 +103,16 @@ async function refreshResults() {
   }
   currentItems = items;
   listResults.innerHTML = '';
-  if (items.length === 0) {
+  
+  selectableItems = [...pinned, ...currentItems];
+
+  if (selectableItems.length === 0) {
     const div = document.createElement('div'); div.className = 'empty'; div.textContent = '該当なし'; listResults.appendChild(div);
     selectionIndex = -1;
   } else {
     items.forEach((it, i) => listResults.appendChild(itemRow(it, i, false)));
-    selectionIndex = 0; applySelection();
+    selectionIndex = 0; 
+    applySelection();
   }
 }
 
@@ -118,11 +123,26 @@ function rankFilter(items, query) {
 }
 
 function applySelection() {
-  const lis = [...listResults.querySelectorAll('li.item')];
-  lis.forEach(li => li.removeAttribute('aria-selected'));
-  if (selectionIndex >= 0 && lis[selectionIndex]) {
-    lis[selectionIndex].setAttribute('aria-selected', 'true');
-    lis[selectionIndex].scrollIntoView({ block: 'nearest' });
+  [...listPinned.querySelectorAll('li.item'), ...listResults.querySelectorAll('li.item')]
+    .forEach(li => li.removeAttribute('aria-selected'));
+
+  if (selectionIndex >= 0 && selectableItems[selectionIndex]) {
+    const pinnedCount = pinned.length;
+    let targetList, targetIndex;
+
+    if (selectionIndex < pinnedCount) {
+      targetList = listPinned;
+      targetIndex = selectionIndex;
+    } else {
+      targetList = listResults;
+      targetIndex = selectionIndex - pinnedCount;
+    }
+    
+    const li = targetList.children[targetIndex];
+    if (li) {
+      li.setAttribute('aria-selected', 'true');
+      li.scrollIntoView({ block: 'nearest' });
+    }
   }
 }
 
@@ -153,10 +173,25 @@ async function saveSettings() {
 }
 
 q.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowDown') { e.preventDefault(); const len = currentItems.length; if (len > 0) { selectionIndex = Math.min(len - 1, selectionIndex + 1); applySelection(); } }
-  else if (e.key === 'ArrowUp') { e.preventDefault(); const len = currentItems.length; if (len > 0) { selectionIndex = Math.max(0, selectionIndex - 1); applySelection(); } }
-  else if (e.key === 'Enter') { e.preventDefault(); if (selectionIndex >= 0 && currentItems[selectionIndex]) openUrl(currentItems[selectionIndex].url); }
-  else if (e.key === 'Escape') { window.close(); }
+  const len = selectableItems.length;
+  if (len === 0) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    selectionIndex = (selectionIndex + 1) % len;
+    applySelection();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    selectionIndex = (selectionIndex - 1 + len) % len;
+    applySelection();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (selectionIndex >= 0 && selectableItems[selectionIndex]) {
+      openUrl(selectableItems[selectionIndex].url);
+    }
+  } else if (e.key === 'Escape') {
+    window.close();
+  }
 });
 q.addEventListener('input', debounce(refreshResults, 120));
 

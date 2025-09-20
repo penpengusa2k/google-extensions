@@ -42,5 +42,5 @@ li.item:first-child { border-top: none; }
 .danger-btn { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 14px; }
 .danger-btn:hover { background-color: #c82333; }
 
-.footer { background: #f8f9fa; border-top: 1px solid #e5e7eb; padding: 8px 12px; display: flex; justify-content: space-around; font-size: 12px; color: #495057; flex-shrink: 0; }
+.footer { background: #f8f9fa; border-top: 1px solid #e5e7eb; padding: 8px 12px; display: flex; justify-content: flex-start; gap: 16px; font-size: 12px; color: #495057; flex-shrink: 0; }
 .command kbd { font-family: monospace; background: #e9ecef; padding: 2px 5px; border-radius: 3px; border: 1px solid #ced4da; }

@@ -65,7 +65,7 @@ chrome.action.onClicked.addListener(async () => { await openPaletteWindow(); });
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     if (msg?.type === "togglePin") {
-      const { url, title } = msg;
+      const { url, title, favIconUrl } = msg;
       const { history, pinned, settings } = await getState();
       const maxHistory = settings.maxHistory || MAX_HISTORY;
       const idx = pinned.findIndex(p => p.url === url);
@@ -77,7 +77,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         nextHistory = [item, ...nextHistory].slice(0, maxHistory);
       } else { // Pin
         nextHistory = nextHistory.filter(h => h.url !== url);
-        const itemToPin = history.find(h => h.url === url) || { url, title };
+        const itemToPin = history.find(h => h.url === url) || { url, title, favIconUrl };
         nextPinned = [itemToPin, ...nextPinned].slice(0, MAX_PINNED);
       }
       

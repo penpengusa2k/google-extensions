@@ -57,7 +57,7 @@ function itemRow(item, i, isPinned=false) {
   star.title = isStarred ? '固定を解除' : '固定する';
   star.addEventListener('click', async (e) => {
     e.stopPropagation();
-    await chrome.runtime.sendMessage({ type: 'togglePin', url: item.url, title: item.title });
+    await chrome.runtime.sendMessage({ type: 'togglePin', url: item.url, title: item.title, favIconUrl: item.favIconUrl });
     await loadStateAndRender();
   });
   li.append(img, main, star);
@@ -75,7 +75,7 @@ async function loadStateAndRender() {
 
   sectionPinned.classList.toggle('hidden', pinned.length === 0);
   listPinned.innerHTML = '';
-  pinned.forEach((p, i) => listPinned.appendChild(itemRow({ ...p, favIconUrl: null }, i, true)));
+  pinned.forEach((p, i) => listPinned.appendChild(itemRow(p, i, true)));
   
   updateSettingsUI();
   await refreshResults();

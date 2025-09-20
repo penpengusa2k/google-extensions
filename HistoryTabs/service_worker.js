@@ -66,10 +66,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     if (msg?.type === "togglePin") {
       const { url, title } = msg;
-      const { pinned } = await getState();
+      const { history, pinned, settings } = await getState();
+      const maxHistory = settings.maxHistory || MAX_HISTORY;
       const idx = pinned.findIndex(p => p.url === url);
-      let next = idx >= 0 ? pinned.filter(p => p.url !== url) : [{ url, title }, ...pinned].slice(0, MAX_PINNED);
-      await setState({ pinned: next }); sendResponse({ ok: true });
+      let nextPinned = [...pinned];
+      let nextHistory = [...history];
+
+      if (idx >= 0) { // Unpin
+        const [item] = nextPinned.splice(idx, 1);
+        nextHistory = [item, ...nextHistory].slice(0, maxHistory);
+      } else { // Pin
+        nextHistory = nextHistory.filter(h => h.url !== url);
+        const itemToPin = history.find(h => h.url === url) || { url, title };
+        nextPinned = [itemToPin, ...nextPinned].slice(0, MAX_PINNED);
+      }
+      
+      await setState({ pinned: nextPinned, history: nextHistory });
+      sendResponse({ ok: true });
     } else if (msg?.type === "getState") {
       const s = await getState(); sendResponse(s);
     } else if (msg?.type === "setState") {

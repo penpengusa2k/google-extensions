@@ -53,8 +53,8 @@ async function openPaletteWindow() {
   await chrome.windows.create({
     url,
     type: "popup",
-    width: 420,
-    height: 560,
+    width: 750,
+    height: 500,
     left: 200,
     top: 150,
     focused: true

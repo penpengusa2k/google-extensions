@@ -18,10 +18,8 @@ const viewSettingsBtn = document.getElementById("viewSettingsBtn");
 const searchView = document.getElementById("searchView");
 const settingsView = document.getElementById("settingsView");
 
-const dwellTimeSlider = document.getElementById("dwellTime");
-const dwellTimeValue = document.getElementById("dwellTimeValue");
-const maxHistorySlider = document.getElementById("maxHistory");
-const maxHistoryValue = document.getElementById("maxHistoryValue");
+const dwellTimeInput = document.getElementById("dwellTime");
+const maxHistoryInput = document.getElementById("maxHistory");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 
 let pinned = [];
@@ -243,14 +241,61 @@ function focusSearch() {
 }
 
 function updateSettingsUI() {
-  dwellTimeSlider.value = settings.dwellSeconds;
-  dwellTimeValue.textContent = settings.dwellSeconds;
-  maxHistorySlider.value = settings.maxHistory;
-  maxHistoryValue.textContent = settings.maxHistory;
+  const clamp = (value, min, max, fallback) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return fallback;
+    return Math.min(max, Math.max(min, numeric));
+  };
+
+  const nextDwell = clamp(settings.dwellSeconds, 1, 10, 3);
+  const nextMax = clamp(settings.maxHistory, 1, 30, 10);
+  const didAdjust = nextDwell !== settings.dwellSeconds || nextMax !== settings.maxHistory;
+  settings.dwellSeconds = nextDwell;
+  settings.maxHistory = nextMax;
+
+  dwellTimeInput.value = settings.dwellSeconds;
+  maxHistoryInput.value = settings.maxHistory;
+
+  if (didAdjust) {
+    saveSettings();
+  }
 }
 
 async function saveSettings() {
   await chrome.runtime.sendMessage({ type: "setState", state: { settings } });
+}
+
+function initializeNumericSetting({ input, key, min, max, step }) {
+  const clampNumber = (value) => Math.min(max, Math.max(min, value));
+  const normalize = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return clampNumber(settings[key] ?? min);
+    const snapped = step ? Math.round(numeric / step) * step : numeric;
+    return clampNumber(snapped);
+  };
+
+  const commit = (value) => {
+    const next = normalize(value);
+    if (settings[key] !== next) {
+      settings[key] = next;
+      saveSettings();
+    }
+    input.value = next;
+  };
+
+  input.addEventListener("change", () => commit(input.value));
+  input.addEventListener("blur", () => commit(input.value));
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      const current = settings[key] ?? min;
+      commit(current + step);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      const current = settings[key] ?? min;
+      commit(current - step);
+    }
+  });
 }
 
 async function handleKeyNavigation(e) {
@@ -277,7 +322,7 @@ async function handleKeyNavigation(e) {
     !e.repeat &&
     !e.altKey &&
     ((e.ctrlKey && e.shiftKey) || (e.metaKey && e.shiftKey)) &&
-    (e.key === "Shift" || e.key === "Control")
+    (e.key === "Shift" || e.key === "Control" || e.key === "Meta")
   ) {
     e.preventDefault();
     if (selectionIndex >= 0 && selectableItems[selectionIndex]) {
@@ -314,17 +359,21 @@ document.addEventListener("keydown", (event) => {
 viewSearchBtn.addEventListener("click", () => switchView("search"));
 viewSettingsBtn.addEventListener("click", () => switchView("settings"));
 
-dwellTimeSlider.addEventListener("input", (e) => {
-  settings.dwellSeconds = parseInt(e.target.value, 10);
-  dwellTimeValue.textContent = settings.dwellSeconds;
+initializeNumericSetting({
+  input: dwellTimeInput,
+  key: "dwellSeconds",
+  min: 1,
+  max: 10,
+  step: 1
 });
-dwellTimeSlider.addEventListener("change", saveSettings);
 
-maxHistorySlider.addEventListener("input", (e) => {
-  settings.maxHistory = parseInt(e.target.value, 10);
-  maxHistoryValue.textContent = settings.maxHistory;
+initializeNumericSetting({
+  input: maxHistoryInput,
+  key: "maxHistory",
+  min: 1,
+  max: 30,
+  step: 1
 });
-maxHistorySlider.addEventListener("change", saveSettings);
 
 clearHistoryBtn.addEventListener("click", async () => {
   if (confirm(CONFIRM_CLEAR)) {

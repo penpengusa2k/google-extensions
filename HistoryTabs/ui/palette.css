@@ -3,10 +3,11 @@ body { margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sa
 
 .container { display: flex; flex: 1; overflow: hidden; }
 
-.sidebar { width: 50px; background: #f8f9fa; border-left: 1px solid #e5e7eb; padding-top: 10px; }
-.sidebar-btn { background: none; border: none; width: 100%; padding: 12px 0; cursor: pointer; color: #6c757d; }
-.sidebar-btn:hover { background: #e9ecef; }
-.sidebar-btn.active { color: #0d6efd; background: #e7f1ff; }
+.sidebar { width: 52px; background: #e2e8f0; border-left: 1px solid #cbd5f5; padding: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+.sidebar-btn { background: none; border: none; width: 100%; padding: 12px 0; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; position: relative; transition: background-color 0.2s ease, color 0.2s ease; }
+.sidebar-btn:hover { background: rgba(255, 255, 255, 0.15); color: #0f172a; }
+.sidebar-btn.active { color: #0f172a; background: #fff; border-radius: 0 12px 12px 0; margin-left: -1px; padding-left: 13px; box-shadow: inset 1px 0 0 #fff, 0 1px 4px rgba(15, 23, 42, 0.12); }
+.sidebar-btn.active::before { content: ""; position: absolute; inset: 0 auto 0 -1px; width: 1px; background: #fff; }
 .sidebar-btn .material-icons { font-size: 24px; }
 
 .main-content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
@@ -35,12 +36,16 @@ li.item:first-child { border-top: none; }
 .empty { padding: 12px; color: #6b7280; }
 
 #settingsView { padding: 20px; }
-.settings-container h2 { margin-top: 0; color: #343a40; }
-.setting-item { margin-bottom: 25px; }
-.setting-item label { display: block; margin-bottom: 8px; color: #495057; }
-.setting-item input[type="range"] { width: 100%; }
+.settings-container h2 { margin-top: 0; color: #1f2937; }
+.setting-item { margin-bottom: 24px; }
+.setting-item label { display: block; margin-bottom: 8px; color: #475569; font-weight: 600; }
+.number-field { display: inline-flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid #cbd5f5; border-radius: 10px; background: #f8fafc; }
+.number-field input[type="number"] { width: 80px; padding: 6px 8px; border: 1px solid #cbd5f5; border-radius: 8px; font-size: 14px; text-align: right; background: #fff; color: #0f172a; }
+.number-field input[type="number"]:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
+.input-suffix { color: #64748b; font-size: 13px; }
+.help-text { margin: 6px 0 0; font-size: 12px; color: #6b7280; }
 .danger-btn { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 14px; }
 .danger-btn:hover { background-color: #c82333; }
 
-.footer { background: #f8f9fa; border-top: 1px solid #e5e7eb; padding: 8px 12px; display: flex; justify-content: flex-start; gap: 16px; font-size: 12px; color: #495057; flex-shrink: 0; }
-.command kbd { font-family: monospace; background: #e9ecef; padding: 2px 5px; border-radius: 3px; border: 1px solid #ced4da; }
+.footer { background: #e2e8f0; border-top: 1px solid #cbd5f5; padding: 8px 12px; display: flex; justify-content: flex-start; gap: 16px; font-size: 12px; color: #1f2937; flex-shrink: 0; }
+.command kbd { font-family: monospace; background: #cbd5f5; padding: 2px 5px; border-radius: 4px; border: 1px solid #94a3b8; }

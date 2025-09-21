@@ -30,12 +30,20 @@
       <div class="settings-container">
         <h2>設定</h2>
         <div class="setting-item">
-          <label for="dwellTime">履歴登録までの秒数: <span id="dwellTimeValue">3</span>s</label>
-          <input type="range" id="dwellTime" min="1" max="10" value="3">
+          <label for="dwellTime">履歴登録までの秒数</label>
+          <div class="number-field">
+            <input type="number" id="dwellTime" min="1" max="10" step="1" value="3" aria-label="履歴登録までの秒数">
+            <span class="input-suffix">秒</span>
+          </div>
+          <p class="help-text">1〜10 秒の範囲で設定できます。</p>
         </div>
         <div class="setting-item">
-          <label for="maxHistory">最大履歴件数: <span id="maxHistoryValue">10</span></label>
-          <input type="range" id="maxHistory" min="10" max="30" step="5" value="10">
+          <label for="maxHistory">最大履歴件数</label>
+          <div class="number-field">
+            <input type="number" id="maxHistory" min="1" max="30" step="1" value="10" aria-label="最大履歴件数">
+            <span class="input-suffix">件</span>
+          </div>
+          <p class="help-text">1〜30 件まで 1 件刻みで調整できます。</p>
         </div>
         <div class="setting-item">
           <button id="clearHistoryBtn" class="danger-btn">全履歴を削除</button>

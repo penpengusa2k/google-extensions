@@ -166,6 +166,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (existing) { await chrome.windows.update(existing.windowId, { focused: true }); await chrome.tabs.update(existing.id, { active: true }); }
       else { await chrome.tabs.create({ url: targetUrl }); }
       sendResponse({ ok: true });
+    } else if (msg?.type === "deleteEntry") {
+      const targetUrl = msg.url;
+      if (!targetUrl) {
+        sendResponse({ ok: false, error: "missing-url" });
+        return;
+      }
+      const { history, pinned } = await getState();
+      const nextHistory = (history || []).filter(item => item.url !== targetUrl);
+      const nextPinned = (pinned || []).filter(item => item.url !== targetUrl);
+      await setState({ history: nextHistory, pinned: nextPinned });
+      sendResponse({ ok: true });
     }
   })();
   return true;

@@ -96,8 +96,7 @@ function itemRow(item, i, isPinned = false) {
   star.title = isStarred ? TITLE_UNPIN : TITLE_PIN;
   star.addEventListener("click", async (e) => {
     e.stopPropagation();
-    await chrome.runtime.sendMessage({ type: "togglePin", url: item.url, title: item.title, favIconUrl: item.favIconUrl });
-    await loadStateAndRender();
+    await togglePinItem(item);
   });
 
   li.append(img, main, star);
@@ -110,7 +109,26 @@ async function openUrl(url) {
   closePalette();
 }
 
-async function loadStateAndRender() {
+async function togglePinItem(item) {
+  if (!item) return;
+  await chrome.runtime.sendMessage({
+    type: "togglePin",
+    url: item.url,
+    title: item.title,
+    favIconUrl: item.favIconUrl
+  });
+  await loadStateAndRender({ keepSelectionUrl: item.url });
+}
+
+async function deleteItem(item, options = {}) {
+  if (!item) return;
+  const { nextSelectionUrl } = options;
+  await chrome.runtime.sendMessage({ type: "deleteEntry", url: item.url });
+  await loadStateAndRender({ keepSelectionUrl: nextSelectionUrl });
+}
+
+async function loadStateAndRender(options = {}) {
+  const { keepSelectionUrl } = options;
   const state = await chrome.runtime.sendMessage({ type: "getState" });
   pinned = state.pinned || [];
   historyItems = (state.history || []).slice(0, 100);
@@ -121,7 +139,7 @@ async function loadStateAndRender() {
   pinned.forEach((p, i) => listPinned.appendChild(itemRow(p, i, true)));
 
   updateSettingsUI();
-  await refreshResults();
+  await refreshResults({ keepSelectionUrl });
 }
 
 async function getAllTabs() {
@@ -131,7 +149,8 @@ async function getAllTabs() {
     .map(t => ({ url: t.url, title: t.title || t.url, favIconUrl: t.favIconUrl }));
 }
 
-async function refreshResults() {
+async function refreshResults(options = {}) {
+  const { keepSelectionUrl } = options;
   const query = q.value.trim();
   tabsMode = query.startsWith("/t");
   let items = [];
@@ -157,7 +176,12 @@ async function refreshResults() {
     selectionIndex = -1;
   } else {
     items.forEach((it, i) => listResults.appendChild(itemRow(it, i, false)));
-    selectionIndex = 0;
+    if (keepSelectionUrl) {
+      const foundIndex = selectableItems.findIndex(it => it.url === keepSelectionUrl);
+      selectionIndex = foundIndex >= 0 ? foundIndex : 0;
+    } else {
+      selectionIndex = 0;
+    }
     applySelection();
   }
 }
@@ -229,7 +253,7 @@ async function saveSettings() {
   await chrome.runtime.sendMessage({ type: "setState", state: { settings } });
 }
 
-function handleKeyNavigation(e) {
+async function handleKeyNavigation(e) {
   const len = selectableItems.length;
   if (len === 0) return;
 
@@ -249,11 +273,36 @@ function handleKeyNavigation(e) {
   } else if (e.key === "Escape") {
     e.preventDefault();
     closePalette();
+  } else if (
+    !e.repeat &&
+    !e.altKey &&
+    ((e.ctrlKey && e.shiftKey) || (e.metaKey && e.shiftKey)) &&
+    (e.key === "Shift" || e.key === "Control")
+  ) {
+    e.preventDefault();
+    if (selectionIndex >= 0 && selectableItems[selectionIndex]) {
+      await togglePinItem(selectableItems[selectionIndex]);
+    }
+  } else if (
+    !e.repeat &&
+    !e.altKey &&
+    (e.ctrlKey || e.metaKey) &&
+    !e.shiftKey &&
+    e.key.toLowerCase() === "d"
+  ) {
+    e.preventDefault();
+    if (selectionIndex >= 0 && selectableItems[selectionIndex]) {
+      const current = selectableItems[selectionIndex];
+      const fallback = selectableItems[selectionIndex + 1] || selectableItems[selectionIndex - 1];
+      await deleteItem(current, { nextSelectionUrl: fallback?.url });
+    }
   }
 }
 
+const debouncedRefresh = debounce(() => refreshResults(), 120);
+
 q.addEventListener("keydown", handleKeyNavigation);
-q.addEventListener("input", debounce(refreshResults, 120));
+q.addEventListener("input", debouncedRefresh);
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {

@@ -1,5 +1,6 @@
 const STAR_FILLED = String.fromCharCode(0x2605);
 const STAR_OUTLINE = String.fromCharCode(0x2606);
+const IS_EMBEDDED = window.parent && window.parent !== window;
 const TITLE_UNPIN = '固定を解除';
 const TITLE_PIN = '固定する';
 const TEXT_EMPTY = '該当なし';
@@ -57,7 +58,7 @@ function scoreMatch(q, title, url) {
 }
 
 function closePalette() {
-  if (window.parent && window.parent !== window) {
+  if (IS_EMBEDDED) {
     window.parent.postMessage({ type: "closePalette" }, "*");
   }
   window.close();
@@ -292,4 +293,14 @@ window.addEventListener("message", (event) => {
 });
 
 loadStateAndRender();
-focusSearch();
+
+if (!IS_EMBEDDED) {
+  requestAnimationFrame(() => focusSearch());
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('q');
+  if (searchInput) {
+    searchInput.focus();
+  }
+});

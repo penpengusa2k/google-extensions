@@ -23,6 +23,7 @@ async function recordIfEligible(elapsedMs, tab) {
   const dwellMs = (state.settings?.dwellSeconds ?? 3) * 1000;
   if (elapsedMs < dwellMs) return;
   if (!tab || isSkippableUrl(tab.url)) return;
+  if (state.pinned.some(p => p.url === tab.url)) return;
   const item = { url: tab.url, title: tab.title || tab.url, favIconUrl: tab.favIconUrl, lastVisitedAt: Date.now() };
   const filtered = state.history.filter(h => h.url != item.url);
   const next = [item, ...filtered].slice(0, state.settings.maxHistory || MAX_HISTORY);

@@ -1,4 +1,3 @@
-
 let active = null;
 const MAX_HISTORY = 10;
 const MAX_PINNED = 10;
@@ -32,24 +31,48 @@ async function recordIfEligible(elapsedMs, tab) {
 async function updateActiveTo(tabId, windowId) {
   const now = Date.now();
   if (active && active.tabId !== tabId) {
-    try { const prevTab = await chrome.tabs.get(active.tabId); await recordIfEligible(now - active.startedAt, prevTab); } catch (e) {}
+    try {
+      const prevTab = await chrome.tabs.get(active.tabId);
+      await recordIfEligible(now - active.startedAt, prevTab);
+    } catch (e) {
+      /* noop */
+    }
   }
   if (tabId > 0 && windowId > 0) active = { tabId, windowId, startedAt: now }; else active = null;
 }
 chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => { await updateActiveTo(tabId, windowId); });
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
   const now = Date.now();
-  if (active) { try { const prev = await chrome.tabs.get(active.tabId); await recordIfEligible(now - active.startedAt, prev); } catch (e) {} }
+  if (active) {
+    try {
+      const prev = await chrome.tabs.get(active.tabId);
+      await recordIfEligible(now - active.startedAt, prev);
+    } catch (e) {
+      /* noop */
+    }
+  }
   if (windowId === chrome.windows.WINDOW_ID_NONE) active = null;
-  else { const [tab] = await chrome.tabs.query({ windowId, active: true }); if (tab) await updateActiveTo(tab.id, windowId); }
+  else {
+    const [tab] = await chrome.tabs.query({ windowId, active: true });
+    if (tab) await updateActiveTo(tab.id, windowId);
+  }
 });
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tabId === active?.tabId && changeInfo.status === "complete") { active.startedAt = Date.now(); }
 });
+
 async function openPaletteWindow() {
   const url = chrome.runtime.getURL("ui/palette.html");
   const all = await chrome.windows.getAll({ populate: true, windowTypes: ["popup", "normal"] });
-  for (const w of all) for (const t of (w.tabs || [])) if (t.url === url) { await chrome.windows.update(w.id, { focused: true }); await chrome.tabs.update(t.id, { active: true }); return; }
+  for (const w of all) {
+    for (const t of (w.tabs || [])) {
+      if (t.url === url) {
+        await chrome.windows.update(w.id, { focused: true });
+        await chrome.tabs.update(t.id, { active: true });
+        return;
+      }
+    }
+  }
   await chrome.windows.create({
     url,
     type: "popup",
@@ -60,8 +83,54 @@ async function openPaletteWindow() {
     focused: true
   });
 }
-chrome.commands.onCommand.addListener(async (cmd) => { if (cmd === "open-palette") await openPaletteWindow(); });
-chrome.action.onClicked.addListener(async () => { await openPaletteWindow(); });
+
+function isMissingReceiverError(error) {
+  if (!error) return false;
+  const message = error.message || String(error);
+  return message.includes("Receiving end does not exist") || message.includes("Could not establish connection");
+}
+
+async function tryTogglePalette(tabId) {
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: "togglePalette" });
+    return true;
+  } catch (error) {
+    if (!isMissingReceiverError(error)) {
+      console.warn("Failed to toggle palette overlay.", error);
+      return false;
+    }
+  }
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["cs/content_script.js"]
+    });
+    await chrome.tabs.sendMessage(tabId, { type: "togglePalette" });
+    return true;
+  } catch (injectionError) {
+    console.warn("Failed to inject palette overlay content script.", injectionError);
+    return false;
+  }
+}
+
+async function togglePaletteForActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+  if (isSkippableUrl(tab.url)) {
+    await openPaletteWindow();
+    return;
+  }
+  const toggled = await tryTogglePalette(tab.id);
+  if (!toggled) {
+    await openPaletteWindow();
+  }
+}
+
+chrome.commands.onCommand.addListener(async (cmd) => {
+  if (cmd === "open-palette") await togglePaletteForActiveTab();
+});
+chrome.action.onClicked.addListener(async () => { await togglePaletteForActiveTab(); });
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     if (msg?.type === "togglePin") {

@@ -1,63 +1,106 @@
-const PALETTE_ID = 'history-tabs-palette-iframe';
+const OVERLAY_ID = "history-tabs-palette-overlay";
+const PALETTE_ID = "history-tabs-palette-iframe";
 
-function togglePalette() {
-  const existing = document.getElementById(PALETTE_ID);
-  if (existing) {
-    existing.remove();
+function removePalette() {
+  const existingOverlay = document.getElementById(OVERLAY_ID);
+  if (existingOverlay) {
+    existingOverlay.remove();
+  }
+}
+
+function createOverlay() {
+  if (!document.body) {
+    window.addEventListener(
+      "DOMContentLoaded",
+      () => {
+        createOverlay();
+      },
+      { once: true }
+    );
     return;
   }
 
-  const iframe = document.createElement('iframe');
-  iframe.id = PALETTE_ID;
-  iframe.src = chrome.runtime.getURL('ui/palette.html');
-  iframe.style.cssText = `
+  if (document.getElementById(OVERLAY_ID)) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = OVERLAY_ID;
+  overlay.style.cssText = `
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 750px;
-    height: 500px;
-    border: 1px solid #ccc;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    z-index: 999999;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(1px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2147483647;
   `;
 
-  iframe.onload = () => {
-    setTimeout(() => {
-      if (iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ type: 'focusInput' }, '*');
-      }
-    }, 100);
-  };
+  overlay.addEventListener("pointerdown", (event) => {
+    if (event.target === overlay) {
+      removePalette();
+    }
+  });
 
-  document.body.appendChild(iframe);
+  const iframe = document.createElement("iframe");
+  iframe.id = PALETTE_ID;
+  iframe.src = chrome.runtime.getURL("ui/palette.html");
+  iframe.setAttribute("allow", "clipboard-read; clipboard-write");
+  iframe.style.cssText = `
+    width: 750px;
+    max-width: calc(100% - 32px);
+    height: 500px;
+    max-height: calc(100% - 32px);
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+    background: transparent;
+  `;
+
+  iframe.addEventListener("load", () => {
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.postMessage({ type: "focusInput" }, "*");
+      } catch (_) {
+        /* noop */
+      }
+    }, 50);
+  });
+
+  overlay.appendChild(iframe);
+  document.body.appendChild(overlay);
+}
+
+function togglePalette() {
+  if (document.getElementById(OVERLAY_ID)) {
+    removePalette();
+  } else {
+    createOverlay();
+  }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'togglePalette') {
+  if (message.type === "togglePalette") {
     togglePalette();
     sendResponse({ ok: true });
   }
   return true;
 });
 
-// Close the palette when the Escape key is pressed
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    const palette = document.getElementById(PALETTE_ID);
-    if (palette) {
-      palette.remove();
-    }
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    removePalette();
   }
 });
 
-// Listen for messages from the iframe (e.g., to close itself)
-window.addEventListener('message', (event) => {
-  if (event.data?.type === 'closePalette') {
-    const palette = document.getElementById(PALETTE_ID);
-    if (palette) {
-      palette.remove();
-    }
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    removePalette();
+  }
+});
+
+window.addEventListener("message", (event) => {
+  if (event.data?.type === "closePalette") {
+    removePalette();
   }
 });

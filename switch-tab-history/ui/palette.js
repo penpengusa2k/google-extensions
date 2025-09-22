@@ -5,6 +5,7 @@ const TITLE_UNPIN = '固定を解除';
 const TITLE_PIN = '固定する';
 const TEXT_EMPTY = '該当なし';
 const CONFIRM_CLEAR = 'すべての履歴を削除します。よろしいですか？';
+const DEFAULT_SETTINGS = { dwellSeconds: 3, maxHistory: 10, excludedPatterns: [] };
 
 const q = document.getElementById("q");
 const sectionPinned = document.getElementById("sectionPinned");
@@ -20,6 +21,7 @@ const settingsView = document.getElementById("settingsView");
 
 const dwellTimeInput = document.getElementById("dwellTime");
 const maxHistoryInput = document.getElementById("maxHistory");
+const excludedPatternsInput = document.getElementById("excludedPatterns");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 
 let pinned = [];
@@ -130,7 +132,7 @@ async function loadStateAndRender(options = {}) {
   const state = await chrome.runtime.sendMessage({ type: "getState" });
   pinned = state.pinned || [];
   historyItems = (state.history || []).slice(0, 100);
-  settings = state.settings || { dwellSeconds: 3, maxHistory: 10 };
+  settings = { ...DEFAULT_SETTINGS, ...(state.settings || {}) };
 
   sectionPinned.classList.toggle("hidden", pinned.length === 0);
   listPinned.innerHTML = "";
@@ -249,16 +251,15 @@ function updateSettingsUI() {
 
   const nextDwell = clamp(settings.dwellSeconds, 1, 10, 3);
   const nextMax = clamp(settings.maxHistory, 1, 30, 10);
-  const didAdjust = nextDwell !== settings.dwellSeconds || nextMax !== settings.maxHistory;
+  const patterns = Array.isArray(settings.excludedPatterns) ? settings.excludedPatterns : [];
+
   settings.dwellSeconds = nextDwell;
   settings.maxHistory = nextMax;
+  settings.excludedPatterns = patterns;
 
   dwellTimeInput.value = settings.dwellSeconds;
   maxHistoryInput.value = settings.maxHistory;
-
-  if (didAdjust) {
-    saveSettings();
-  }
+  excludedPatternsInput.value = patterns.join("\n");
 }
 
 async function saveSettings() {
@@ -298,6 +299,13 @@ function initializeNumericSetting({ input, key, min, max, step }) {
   });
 }
 
+function parseExcludedPatterns(raw) {
+  return raw
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter((line, index, arr) => line.length > 0 && arr.indexOf(line) === index);
+}
+
 async function handleKeyNavigation(e) {
   const len = selectableItems.length;
   if (len === 0) return;
@@ -330,10 +338,11 @@ async function handleKeyNavigation(e) {
     }
   } else if (
     !e.repeat &&
-    !e.altKey &&
-    (e.ctrlKey || e.metaKey) &&
-    !e.shiftKey &&
-    e.key.toLowerCase() === "d"
+    e.altKey &&
+    e.shiftKey &&
+    !e.ctrlKey &&
+    !e.metaKey &&
+    (e.key === "Shift" || e.key === "Alt")
   ) {
     e.preventDefault();
     if (selectionIndex >= 0 && selectableItems[selectionIndex]) {
@@ -373,6 +382,16 @@ initializeNumericSetting({
   min: 1,
   max: 30,
   step: 1
+});
+
+excludedPatternsInput.addEventListener("input", () => {
+  settings.excludedPatterns = parseExcludedPatterns(excludedPatternsInput.value);
+});
+
+excludedPatternsInput.addEventListener("blur", async () => {
+  settings.excludedPatterns = parseExcludedPatterns(excludedPatternsInput.value);
+  excludedPatternsInput.value = settings.excludedPatterns.join("\n");
+  await saveSettings();
 });
 
 clearHistoryBtn.addEventListener("click", async () => {

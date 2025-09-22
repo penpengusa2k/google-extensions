@@ -46,6 +46,16 @@
           <p class="help-text">1〜30 件まで 1 件刻みで調整できます。</p>
         </div>
         <div class="setting-item">
+          <label for="excludedPatterns">履歴除外 URL</label>
+          <textarea
+            id="excludedPatterns"
+            rows="4"
+            placeholder="例: https://*.example.com/*"
+            aria-label="履歴除外 URL パターン (1 行につき 1 件)"
+          ></textarea>
+          <p class="help-text">1 行につき 1 パターン。`*` は任意の文字列にマッチします。</p>
+        </div>
+        <div class="setting-item">
           <button id="clearHistoryBtn" class="danger-btn">全履歴を削除</button>
         </div>
       </div>
@@ -63,7 +73,7 @@
   <span class="command"><kbd>Enter</kbd> 選択</span>
   <span class="command"><kbd>/t</kbd> 全タブ検索</span>
   <span class="command"><kbd>Ctrl</kbd><kbd>Shift</kbd> ピン切替</span>
-  <span class="command"><kbd>Ctrl</kbd><kbd>D</kbd> 削除</span>
+  <span class="command"><kbd>Alt</kbd><kbd>Shift</kbd> 削除</span>
   <span class="command"><kbd>Esc</kbd> 閉じる</span>
 </div>
 

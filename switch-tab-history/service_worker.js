@@ -1,7 +1,22 @@
 let active = null;
 const MAX_HISTORY = 10;
 const MAX_PINNED = 10;
-const DEFAULT_SETTINGS = { dwellSeconds: 3, maxHistory: MAX_HISTORY };
+const DEFAULT_SETTINGS = { dwellSeconds: 3, maxHistory: MAX_HISTORY, excludedPatterns: [] };
+
+function matchesExcluded(url, patterns) {
+  if (!url || !Array.isArray(patterns) || patterns.length === 0) return false;
+  for (const pattern of patterns) {
+    if (!pattern) continue;
+    const escaped = pattern.replace(/[-/\\^$+?.()|[\]{}]/g, "\\$&");
+    const regexPattern = `^${escaped.replace(/\*/g, ".*")}$`;
+    try {
+      if (new RegExp(regexPattern, "i").test(url)) return true;
+    } catch (_) {
+      // ignore malformed pattern
+    }
+  }
+  return false;
+}
 
 function isSkippableUrl(url) {
   if (!url) return true;
@@ -20,9 +35,12 @@ async function setState(partial) { await chrome.storage.sync.set(partial); }
 
 async function recordIfEligible(elapsedMs, tab) {
   const state = await getState();
-  const dwellMs = (state.settings?.dwellSeconds ?? 3) * 1000;
+  const settings = state.settings || DEFAULT_SETTINGS;
+  const dwellMs = (settings.dwellSeconds ?? 3) * 1000;
+  const excludedPatterns = Array.isArray(settings.excludedPatterns) ? settings.excludedPatterns : [];
   if (elapsedMs < dwellMs) return;
   if (!tab || isSkippableUrl(tab.url)) return;
+  if (matchesExcluded(tab.url, excludedPatterns)) return;
   if (state.pinned.some(p => p.url === tab.url)) return;
   const item = { url: tab.url, title: tab.title || tab.url, favIconUrl: tab.favIconUrl, lastVisitedAt: Date.now() };
   const filtered = state.history.filter(h => h.url != item.url);
@@ -162,9 +180,25 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       await setState({ history: [] });
       sendResponse({ ok: true });
     } else if (msg?.type === "openUrl") {
-      const targetUrl = msg.url; const [existing] = await chrome.tabs.query({ url: targetUrl });
-      if (existing) { await chrome.windows.update(existing.windowId, { focused: true }); await chrome.tabs.update(existing.id, { active: true }); }
-      else { await chrome.tabs.create({ url: targetUrl }); }
+      const targetUrl = msg.url;
+      if (!targetUrl) {
+        sendResponse({ ok: false, error: "missing-url" });
+        return;
+      }
+
+      const possibleTabs = await chrome.tabs.query({ url: targetUrl });
+      const originTabId = sender.tab?.id;
+      const existing = possibleTabs.find(tab => tab.id !== originTabId);
+
+      if (existing) {
+        await chrome.windows.update(existing.windowId, { focused: true });
+        await chrome.tabs.update(existing.id, { active: true });
+      } else {
+        const createOptions = { url: targetUrl };
+        if (sender.tab?.windowId !== undefined) createOptions.windowId = sender.tab.windowId;
+        if (sender.tab?.index !== undefined) createOptions.index = sender.tab.index + 1;
+        await chrome.tabs.create(createOptions);
+      }
       sendResponse({ ok: true });
     } else if (msg?.type === "deleteEntry") {
       const targetUrl = msg.url;

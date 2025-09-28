@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Todo List</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="todo.css">
+
+<div class="container">
+  <div class="main-content">
+    <div id="todosView" class="view active" aria-labelledby="viewTodosBtn">
+      <input
+        id="todoInput"
+        type="text"
+        placeholder="TODO を入力…"
+        autocomplete="off"
+        aria-label="TODO を追加"
+      >
+      <div class="scrollable-content">
+        <div id="activeSection" class="section" aria-label="未完了 TODO">
+          <div class="sectionTitle">TODO LIST</div>
+          <ul id="activeList" role="listbox" aria-label="未完了 TODO 一覧"></ul>
+          <div id="activeEmpty" class="empty hidden">TODO はありません</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="completedView" class="view" aria-labelledby="viewCompletedBtn">
+      <div class="info">
+        <h2>完了済み TODO</h2>
+        <p>完了から 7 日以内の TODO を表示します。</p>
+      </div>
+      <div class="scrollable-content">
+        <ul id="completedList" role="listbox" aria-label="完了済み TODO 詳細一覧"></ul>
+        <div id="completedEmpty" class="empty hidden">完了済み TODO はありません</div>
+      </div>
+    </div>
+
+    <div id="deletedView" class="view" aria-labelledby="viewDeletedBtn">
+      <div class="info">
+        <h2>削除済み TODO</h2>
+        <p>削除から 7 日以内の TODO を表示します。</p>
+      </div>
+      <div class="scrollable-content">
+        <ul id="deletedList" role="listbox" aria-label="削除済み TODO 一覧"></ul>
+        <div id="deletedEmpty" class="empty hidden">削除済み TODO はありません</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <button id="viewTodosBtn" class="sidebar-btn active" title="TODO">
+      <i class="material-icons">fact_check</i>
+    </button>
+    <button id="viewCompletedBtn" class="sidebar-btn" title="完了済み">
+      <i class="material-icons">done_all</i>
+    </button>
+    <button id="viewDeletedBtn" class="sidebar-btn" title="削除済み">
+      <i class="material-icons">delete_outline</i>
+    </button>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="command command-common"><kbd>Enter</kbd> 追加</span>
+  <span class="command command-common"><kbd>↑</kbd><kbd>↓</kbd> 移動</span>
+  <span class="command command-common"><kbd>Alt</kbd><kbd>↑</kbd>/<kbd>Alt</kbd><kbd>↓</kbd> タブ切替</span>
+  <span class="command command-todos"><kbd>Alt</kbd><kbd>←</kbd> 削除</span>
+  <span class="command command-todos"><kbd>Alt</kbd><kbd>→</kbd> 完了</span>
+  <span class="command command-completed"><kbd>Alt</kbd><kbd>←</kbd> 削除リストへ</span>
+  <span class="command command-completed"><kbd>Alt</kbd><kbd>→</kbd> 復活</span>
+  <span class="command command-deleted"><kbd>Alt</kbd><kbd>←</kbd> 完全削除</span>
+  <span class="command command-deleted"><kbd>Alt</kbd><kbd>→</kbd> 復活</span>
+  <span class="command command-common"><kbd>Esc</kbd> 閉じる</span>
+</div>
+
+<script src="todo.js" defer></script>

@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Palette</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="palette.css">
+
+<div class="container">
+  <div class="main-content">
+    <div id="searchView" class="view active">
+      <input
+        id="q"
+        type="text"
+        placeholder="検索…"
+        autocomplete="off"
+        aria-label="検索入力"
+      >
+      <div class="scrollable-content">
+        <div id="sectionPinned" class="section hidden">
+          <div class="sectionTitle">Pinned</div>
+          <ul id="listPinned" role="listbox" aria-label="固定URL"></ul>
+        </div>
+        <div id="sectionResults" class="section">
+          <div class="sectionTitle" id="resultsTitle">History</div>
+          <ul id="listResults" role="listbox" aria-label="検索結果"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="settingsView" class="view">
+      <div class="settings-container">
+        <h2>設定</h2>
+        <div class="setting-item">
+          <label for="dwellTime">履歴登録までの秒数</label>
+          <div class="number-field">
+            <input type="number" id="dwellTime" min="1" max="10" step="1" value="3" aria-label="履歴登録までの秒数">
+            <span class="input-suffix">秒</span>
+          </div>
+          <p class="help-text">1〜10 秒の範囲で設定できます。</p>
+        </div>
+        <div class="setting-item">
+          <label for="maxHistory">最大履歴件数</label>
+          <div class="number-field">
+            <input type="number" id="maxHistory" min="1" max="30" step="1" value="10" aria-label="最大履歴件数">
+            <span class="input-suffix">件</span>
+          </div>
+          <p class="help-text">1〜30 件まで 1 件刻みで調整できます。</p>
+        </div>
+        <div class="setting-item">
+          <label for="excludedPatterns">履歴除外 URL</label>
+          <textarea
+            id="excludedPatterns"
+            rows="4"
+            placeholder="例: https://*.example.com/*"
+            aria-label="履歴除外 URL パターン (1 行につき 1 件)"
+          ></textarea>
+          <p class="help-text">1 行につき 1 パターン。`*` は任意の文字列にマッチします。</p>
+        </div>
+        <div class="setting-item">
+          <button id="clearHistoryBtn" class="danger-btn">全履歴を削除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <button id="viewSearchBtn" class="sidebar-btn active" title="検索"><i class="material-icons">search</i></button>
+    <button id="viewSettingsBtn" class="sidebar-btn" title="設定"><i class="material-icons">settings</i></button>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="command"><kbd>↑</kbd><kbd>↓</kbd> 移動</span>
+  <span class="command"><kbd>Enter</kbd> 選択</span>
+  <span class="command"><kbd>/t</kbd> 全タブ検索</span>
+  <span class="command"><kbd>Ctrl</kbd><kbd>Shift</kbd> ピン切替</span>
+  <span class="command"><kbd>Alt</kbd><kbd>Shift</kbd> 削除</span>
+  <span class="command"><kbd>Esc</kbd> 閉じる</span>
+</div>
+
+<script src="palette.js" defer></script>

@@ -23,6 +23,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-height: 0;
 }
 
 .sidebar-btn {
@@ -30,6 +31,7 @@ body {
   border: none;
   width: 100%;
   padding: 12px 0;
+  flex: 1;
   cursor: pointer;
   color: #64748b;
   display: flex;
@@ -74,7 +76,8 @@ body {
 
 .view {
   display: none;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .view.active {
@@ -91,6 +94,63 @@ body {
   padding: 20px 16px;
   flex-direction: column;
   gap: 16px;
+}
+
+#settingsView {
+  padding: 24px 24px 16px;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.settings-header p {
+  margin: 4px 0 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+}
+
+.settings-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5f5;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.settings-button:hover {
+  background: #e0f2fe;
+  border-color: #93c5fd;
+  color: #0c4a6e;
+}
+
+.settings-button.delete {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.settings-button.delete:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #7f1d1d;
 }
 
 #todoInput {
@@ -202,6 +262,115 @@ body {
 .todo-item[aria-selected="true"] {
   background: #eef2ff;
   outline: 2px solid #c7d2fe;
+}
+
+/* 状態変化時のハイライト */
+.todo-item--animate-completed {
+  animation: todo-completed-highlight 0.45s ease-out;
+}
+
+.todo-item--animate-deleted {
+  animation: todo-deleted-highlight 0.5s ease-out;
+}
+
+.todo-item--animate-restored {
+  animation: todo-restored-highlight 0.55s ease-out;
+}
+
+.todo-item--animate-source-completed {
+  animation: todo-source-completed 0.3s ease-in forwards;
+}
+
+.todo-item--animate-source-deleted {
+  animation: todo-source-deleted 0.3s ease-in forwards;
+}
+
+.todo-item--animate-source-restored {
+  animation: todo-source-restored 0.35s ease-in forwards;
+}
+
+@keyframes todo-completed-highlight {
+  0% {
+    background: #dcfce7;
+    transform: scale(1.01);
+  }
+  60% {
+    background: #86efac;
+    transform: scale(1.005);
+  }
+  100% {
+    background: transparent;
+    transform: scale(1);
+  }
+}
+
+@keyframes todo-deleted-highlight {
+  0% {
+    background: #fee2e2;
+    transform: translateX(0);
+  }
+  50% {
+    background: #fecaca;
+    transform: translateX(-6px);
+  }
+  100% {
+    background: transparent;
+    transform: translateX(0);
+  }
+}
+
+@keyframes todo-restored-highlight {
+  0% {
+    background: #dbeafe;
+    transform: scale(0.98);
+  }
+  50% {
+    background: #bfdbfe;
+    transform: scale(1.005);
+  }
+  100% {
+    background: transparent;
+    transform: scale(1);
+  }
+}
+
+@keyframes todo-source-completed {
+  0% {
+    background: #dcfce7;
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    background: #bbf7d0;
+    transform: translateX(6px);
+    opacity: 0;
+  }
+}
+
+@keyframes todo-source-deleted {
+  0% {
+    background: #fee2e2;
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    background: #fecaca;
+    transform: translateX(-10px);
+    opacity: 0;
+  }
+}
+
+@keyframes todo-source-restored {
+  0% {
+    background: #dbeafe;
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    background: #bfdbfe;
+    transform: translateY(-6px);
+    opacity: 0;
+  }
 }
 
 .hidden {

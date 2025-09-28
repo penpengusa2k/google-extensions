@@ -6,9 +6,11 @@ const todoInput = document.getElementById("todoInput");
 const viewTodosBtn = document.getElementById("viewTodosBtn");
 const viewCompletedBtn = document.getElementById("viewCompletedBtn");
 const viewDeletedBtn = document.getElementById("viewDeletedBtn");
+const viewSettingsBtn = document.getElementById("viewSettingsBtn");
 const todosView = document.getElementById("todosView");
 const completedView = document.getElementById("completedView");
 const deletedView = document.getElementById("deletedView");
+const settingsView = document.getElementById("settingsView");
 
 const activeList = document.getElementById("activeList");
 const completedList = document.getElementById("completedList");
@@ -17,6 +19,8 @@ const deletedList = document.getElementById("deletedList");
 const activeEmpty = document.getElementById("activeEmpty");
 const completedEmpty = document.getElementById("completedEmpty");
 const deletedEmpty = document.getElementById("deletedEmpty");
+const exportCsvBtn = document.getElementById("exportCsvBtn");
+const deleteAllBtn = document.getElementById("deleteAllBtn");
 
 const footerCommands = Array.from(document.querySelectorAll(".footer .command"));
 const VIEW_SEQUENCE = ["todos", "completed", "deleted"];
@@ -26,6 +30,18 @@ let selectionIndex = -1;
 let displayedItems = [];
 let currentView = "todos";
 let isComposing = false;
+const ACTION_ANIMATION_CLASS_MAP = {
+  completed: "todo-item--animate-completed",
+  deleted: "todo-item--animate-deleted",
+  restored: "todo-item--animate-restored"
+};
+const ACTION_ANIMATION_CLASSES = Object.values(ACTION_ANIMATION_CLASS_MAP);
+const ACTION_SOURCE_ANIMATION_CLASS_MAP = {
+  completed: "todo-item--animate-source-completed",
+  deleted: "todo-item--animate-source-deleted",
+  restored: "todo-item--animate-source-restored"
+};
+const ACTION_SOURCE_ANIMATION_CLASSES = Object.values(ACTION_SOURCE_ANIMATION_CLASS_MAP);
 
 function closeTodo() {
   if (IS_EMBEDDED) {
@@ -136,8 +152,10 @@ function rebuildDisplayedItems() {
     displayedItems = state.active.map(item => ({ item, status: "active" }));
   } else if (currentView === "completed") {
     displayedItems = state.completed.map(item => ({ item, status: "completed" }));
-  } else {
+  } else if (currentView === "deleted") {
     displayedItems = state.deleted.map(item => ({ item, status: "deleted" }));
+  } else {
+    displayedItems = [];
   }
 }
 
@@ -170,7 +188,7 @@ function render(options = {}) {
   renderDeletedList();
   rebuildDisplayedItems();
 
-  const { keepId } = options;
+  const { keepId, animate } = options;
   if (keepId) {
     const idx = displayedItems.findIndex(entry => entry.item.id === keepId);
     if (idx >= 0) {
@@ -179,6 +197,10 @@ function render(options = {}) {
   }
 
   applySelection();
+
+  if (animate) {
+    requestAnimationFrame(() => triggerActionAnimation(animate));
+  }
 }
 
 function moveSelection(delta) {
@@ -344,6 +366,7 @@ async function addTodo(text) {
 }
 
 async function completeTodo(id) {
+  await animateSourceAction(id, "active", "completed");
   const index = state.active.findIndex(item => item.id === id);
   if (index < 0) return;
   const [item] = state.active.splice(index, 1);
@@ -351,11 +374,15 @@ async function completeTodo(id) {
   state.completed.unshift(completedItem);
   await persistState();
   const next = state.active[index] || state.active[index - 1];
-  render({ keepId: next?.id });
+  render({
+    keepId: next?.id,
+    animate: { id: completedItem.id, status: "completed", type: "completed" }
+  });
 }
 
 async function restoreTodo(id, status = "completed") {
   if (status === "completed") {
+    await animateSourceAction(id, "completed", "restored");
     const index = state.completed.findIndex(item => item.id === id);
     if (index < 0) return;
     const [item] = state.completed.splice(index, 1);
@@ -369,14 +396,21 @@ async function restoreTodo(id, status = "completed") {
     await persistState();
     if (currentView === "completed") {
       const nextCompleted = state.completed[index] || state.completed[index - 1];
-      render({ keepId: nextCompleted?.id });
+      render({
+        keepId: nextCompleted?.id,
+        animate: { id: restored.id, status: "active", type: "restored" }
+      });
     } else {
-      render({ keepId: restored.id });
+      render({
+        keepId: restored.id,
+        animate: { id: restored.id, status: "active", type: "restored" }
+      });
     }
     return;
   }
 
   if (status === "deleted") {
+    await animateSourceAction(id, "deleted", "restored");
     const index = state.deleted.findIndex(item => item.id === id);
     if (index < 0) return;
     const [item] = state.deleted.splice(index, 1);
@@ -390,9 +424,15 @@ async function restoreTodo(id, status = "completed") {
     await persistState();
     if (currentView === "deleted") {
       const nextDeleted = state.deleted[index] || state.deleted[index - 1];
-      render({ keepId: nextDeleted?.id });
+      render({
+        keepId: nextDeleted?.id,
+        animate: { id: restored.id, status: "active", type: "restored" }
+      });
     } else {
-      render({ keepId: restored.id });
+      render({
+        keepId: restored.id,
+        animate: { id: restored.id, status: "active", type: "restored" }
+      });
     }
   }
 }
@@ -400,6 +440,7 @@ async function restoreTodo(id, status = "completed") {
 async function deleteTodo(id, status) {
   const now = Date.now();
   if (status === "active" || status === "completed") {
+    await animateSourceAction(id, status, "deleted");
     const source = status === "active" ? state.active : state.completed;
     const index = source.findIndex(item => item.id === id);
     if (index < 0) return;
@@ -418,7 +459,10 @@ async function deleteTodo(id, status) {
     state.deleted.unshift(deletedItem);
     await persistState();
     const next = source[index] || source[index - 1];
-    render({ keepId: next?.id });
+    render({
+      keepId: next?.id,
+      animate: { id: deletedItem.id, status: "deleted", type: "deleted" }
+    });
     return;
   }
 
@@ -432,8 +476,174 @@ async function deleteTodo(id, status) {
   }
 }
 
+function animateSourceAction(id, status, type) {
+  const className = ACTION_SOURCE_ANIMATION_CLASS_MAP[type];
+  if (!className) {
+    return Promise.resolve();
+  }
+
+  let listEl = activeList;
+  if (status === "completed") {
+    listEl = completedList;
+  } else if (status === "deleted") {
+    listEl = deletedList;
+  }
+
+  const target = listEl.querySelector(`[data-id="${id}"]`);
+  if (!target) {
+    return Promise.resolve();
+  }
+
+  ACTION_SOURCE_ANIMATION_CLASSES.forEach(name => target.classList.remove(name));
+  void target.offsetWidth;
+  target.classList.add(className);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const cleanup = () => {
+      if (settled) return;
+      settled = true;
+      target.classList.remove(className);
+      resolve();
+    };
+
+    target.addEventListener("animationend", cleanup, { once: true });
+    target.addEventListener("animationcancel", cleanup, { once: true });
+    setTimeout(cleanup, 600);
+  });
+}
+
+function triggerActionAnimation({ id, status, type }) {
+  const className = ACTION_ANIMATION_CLASS_MAP[type];
+  if (!className) {
+    return;
+  }
+
+  let listEl = activeList;
+  if (status === "completed") {
+    listEl = completedList;
+  } else if (status === "deleted") {
+    listEl = deletedList;
+  }
+
+  const target = listEl.querySelector(`[data-id="${id}"]`);
+  if (!target) {
+    return;
+  }
+
+  ACTION_ANIMATION_CLASSES.forEach(name => target.classList.remove(name));
+  // 再適用のためにリフローを挟む
+  void target.offsetWidth;
+
+  target.classList.add(className);
+
+  const clearAnimation = () => {
+    target.classList.remove(className);
+  };
+
+  target.addEventListener("animationend", clearAnimation, { once: true });
+  target.addEventListener("animationcancel", clearAnimation, { once: true });
+}
+
+function csvEscape(raw) {
+  if (raw === null || raw === undefined) return "";
+  const value = String(raw);
+  if (!/[",\n\r]/.test(value)) {
+    return value;
+  }
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function formatTimestampForCsv(ts) {
+  if (!Number.isFinite(ts)) return "";
+  return formatDate(ts);
+}
+
+function buildCsvRows() {
+  const rows = [[
+    "status",
+    "id",
+    "text",
+    "createdAt",
+    "updatedAt",
+    "completedAt",
+    "deletedAt"
+  ]];
+
+  const appendRows = (items, status) => {
+    items.forEach(item => {
+      rows.push([
+        status,
+        item.id,
+        item.text,
+        formatTimestampForCsv(item.createdAt),
+        formatTimestampForCsv(item.updatedAt),
+        formatTimestampForCsv(item.completedAt),
+        formatTimestampForCsv(item.deletedAt)
+      ]);
+    });
+  };
+
+  appendRows(state.active, "active");
+  appendRows(state.completed, "completed");
+  appendRows(state.deleted, "deleted");
+
+  return rows;
+}
+
+function rowsToCsv(rows) {
+  return rows.map(row => row.map(csvEscape).join(",")).join("\r\n");
+}
+
+function buildExportFilename() {
+  const now = new Date();
+  const pad = (num) => String(num).padStart(2, "0");
+  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return `todo-list-${stamp}.csv`;
+}
+
+function exportTodosAsCsv() {
+  const rows = buildCsvRows();
+  const csvContent = rowsToCsv(rows);
+  const bom = String.fromCharCode(0xfeff);
+  const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = buildExportFilename();
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function deleteAllData() {
+  const confirmed = window.confirm("全ての TODO データを削除します。よろしいですか？");
+  if (!confirmed) {
+    return;
+  }
+  try {
+    await chrome.storage.sync.remove(STORAGE_KEY);
+  } catch (error) {
+    console.error("Failed to clear storage", error);
+    window.alert("データの削除に失敗しました。時間を置いて再度お試しください。");
+    return;
+  }
+
+  state = { active: [], completed: [], deleted: [] };
+  selectionIndex = -1;
+  displayedItems = [];
+
+  render();
+  updateFooterCommands(currentView);
+  if (currentView === "todos") {
+    focusInput();
+  }
+}
+
 function switchView(view, options = {}) {
-  if (!["todos", "completed", "deleted"].includes(view)) return;
+  if (!["todos", "completed", "deleted", "settings"].includes(view)) return;
   if (currentView === view && !options.focusId) {
     updateFooterCommands(view);
     if (view === "todos") focusInput();
@@ -443,9 +653,11 @@ function switchView(view, options = {}) {
   todosView.classList.toggle("active", view === "todos");
   completedView.classList.toggle("active", view === "completed");
   deletedView.classList.toggle("active", view === "deleted");
+  settingsView.classList.toggle("active", view === "settings");
   viewTodosBtn.classList.toggle("active", view === "todos");
   viewCompletedBtn.classList.toggle("active", view === "completed");
   viewDeletedBtn.classList.toggle("active", view === "deleted");
+  viewSettingsBtn.classList.toggle("active", view === "settings");
   render({ keepId: options.focusId });
   updateFooterCommands(view);
   if (view === "todos") {
@@ -529,6 +741,11 @@ todoInput.addEventListener("keydown", async (event) => {
 viewTodosBtn.addEventListener("click", () => switchView("todos"));
 viewCompletedBtn.addEventListener("click", () => switchView("completed"));
 viewDeletedBtn.addEventListener("click", () => switchView("deleted"));
+viewSettingsBtn.addEventListener("click", () => switchView("settings"));
+exportCsvBtn.addEventListener("click", () => exportTodosAsCsv());
+deleteAllBtn.addEventListener("click", () => {
+  deleteAllData();
+});
 
 document.addEventListener("keydown", async (event) => {
   if (event.key === "Escape") {

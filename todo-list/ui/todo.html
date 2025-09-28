@@ -44,6 +44,23 @@
         <div id="deletedEmpty" class="empty hidden">削除済み TODO はありません</div>
       </div>
     </div>
+
+    <div id="settingsView" class="view" aria-labelledby="viewSettingsBtn">
+      <div class="settings-header">
+        <h2>設定</h2>
+        <p>TODO データのエクスポートや削除を行います。</p>
+      </div>
+      <div class="settings-actions">
+        <button id="exportCsvBtn" class="settings-button" type="button">
+          <i class="material-icons" aria-hidden="true">file_download</i>
+          <span>CSV をダウンロード</span>
+        </button>
+        <button id="deleteAllBtn" class="settings-button delete" type="button">
+          <i class="material-icons" aria-hidden="true">delete_forever</i>
+          <span>全データを削除</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <div class="sidebar">
@@ -55,6 +72,9 @@
     </button>
     <button id="viewDeletedBtn" class="sidebar-btn" title="削除済み">
       <i class="material-icons">delete_outline</i>
+    </button>
+    <button id="viewSettingsBtn" class="sidebar-btn" title="設定">
+      <i class="material-icons">settings</i>
     </button>
   </div>
 </div>
